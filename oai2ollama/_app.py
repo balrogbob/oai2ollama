@@ -10,7 +10,7 @@ app = FastAPI()
 async def _new_client():
     from httpx import AsyncClient
 
-    async with AsyncClient(base_url=str(env.base_url), headers={"Authorization": f"Bearer {env.api_key}"}, timeout=60, http2=True, follow_redirects=True) as client:
+    async with AsyncClient(base_url=str(env.base_url), headers={"Authorization": f"Bearer {env.api_key}"}, timeout=6000, http2=True, follow_redirects=True) as client:
         yield client
 
 
@@ -38,7 +38,11 @@ async def show_model():
 async def list_models(client=_new_client):
     res = await client.get("/models")
     res.raise_for_status()
-    return res.json()
+    data = res.json()
+    for model in data.get("data", []):
+        model_id = model.get("id", "")
+        model["max_tokens"] = env.model_contexts.get(model_id, 4000)
+    return data
 
 
 @app.post("/v1/chat/completions")
